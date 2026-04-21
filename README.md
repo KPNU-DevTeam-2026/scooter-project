@@ -32,3 +32,6 @@
    ```bash
    git clone [https://github.com/your-username/mathmaze.git](https://github.com/your-username/mathmaze.git)
    cd mathmaze
+
+## ⚖️ Ліцензія
+Цей проєкт розповсюджується під ліцензією **Unlicense**. Ми обрали її, оскільки MATHMAZE — це навчальний проєкт, і ми хочемо, щоб наш код був максимально доступним для спільноти без жодних юридичних обмежень.
