@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity Web Player | MathMaze</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="stylesheet" href="TemplateData/style.css">
+     <style>
+      html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #231f20;
+      }
+      body.mathmaze-embed-iframe #unity-container.unity-desktop {
+        position: fixed;
+        left: 0;
+        top: 0;
+        transform: none;
+        width: 100%;
+        height: 100%;
+      }
+      body.mathmaze-embed-iframe #unity-canvas {
+        width: 100% !important;
+        height: 100% !important;
+      }
+      #unity-footer {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        z-index: 5;
+      }
+      #unity-logo-title-footer,
+      #unity-build-title {
+        display: none !important;
+      }
+      #unity-fullscreen-button {
+        width: 42px !important;
+        height: 42px !important;
+        background-size: 28px 28px !important;
+        border-radius: 8px;
+        background-color: rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .unity-mobile #unity-footer {
+        display: block !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="unity-container" class="unity-desktop">
+      <canvas id="unity-canvas" width="960" height="600" tabindex="-1"></canvas>
+      <div id="unity-loading-bar">
+        <div id="unity-logo"></div>
+        <div id="unity-progress-bar-empty">
+          <div id="unity-progress-bar-full"></div>
+        </div>
+      </div>
+      <div id="unity-warning"> </div>
+      <div id="unity-footer">
+        <div id="unity-logo-title-footer"></div>
+        <div id="unity-fullscreen-button"></div>
+        <div id="unity-build-title">MathMaze</div>
+      </div>
+    </div>
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+
+        var mathMazeInParentFrame = (function () {
+        try {
+          return window.parent && window.self !== window.parent;
+        } catch (e) {
+          return true;
+        }
+      })();
+      if (mathMazeInParentFrame) {
+        document.body.classList.add("mathmaze-embed-iframe");
+      }
+
+      function unityShowBanner(msg, type) {
+        var warningBanner = document.querySelector("#unity-warning");
+        function updateBannerVisibility() {
+           warningBanner.style.display = warningBanner.children.length ? "block" : "none";
+        }
+        var div = document.createElement("div");
+        div.innerHTML = msg;
+        warningBanner.appendChild(div);
+        if (type === "error") div.style = "background: red; padding: 10px;";
+        else {
+          if (type == "warning") div.style = "background: yellow; padding: 10px;";
+          setTimeout(function() {
+            warningBanner.removeChild(div);
+            updateBannerVisibility();
+          }, 5000);
+        }
+        updateBannerVisibility();
+      }
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/MathMaze.loader.js";
+      var config = {
+        arguments: [],
+        dataUrl: buildUrl + "/MathMaze.data",
+        frameworkUrl: buildUrl + "/MathMaze.framework.js",
+        codeUrl: buildUrl + "/MathMaze.wasm",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "MathMaze",
+        productVersion: "1.0",
+        showBanner: unityShowBanner
+      };
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        var meta = document.createElement("meta");
+        meta.name = "viewport";
+        meta.content =
+          "width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes";
+        document.getElementsByTagName("head")[0].appendChild(meta);
+        document.querySelector("#unity-container").className = "unity-mobile";
+        canvas.className = "unity-mobile";
+        
+      } else {
+      if (mathMazeInParentFrame) {
+          canvas.style.width = "100%";
+          canvas.style.height = "100%";
+        } else {
+        canvas.style.width = "960px";
+        canvas.style.height = "600px";
+      }
+    }
+
+      document.querySelector("#unity-loading-bar").style.display = "block";
+
+        var mathMazeIframePingId = null;
+      var mathMazeUnityInstance = null;
+
+      function mathMazeIsFullscreen() {
+        return !!(
+          document.fullscreenElement 
+          document.webkitFullscreenElement 
+          document.msFullscreenElement
+        );
+      }
+
+      function mathMazeToggleFullscreen() {
+        var containerEl = document.querySelector("#unity-container");
+        if (mathMazeIsFullscreen()) {
+          var exitFs =
+            document.exitFullscreen 
+            document.webkitExitFullscreen 
+            document.msExitFullscreen;
+          if (exitFs) exitFs.call(document);
+        } else {
+          var reqFs =
+            containerEl?.requestFullscreen 
+            containerEl?.webkitRequestFullscreen 
+            containerEl?.msRequestFullscreen;
+          if (reqFs) {
+            reqFs.call(containerEl);
+          } else if (mathMazeUnityInstance) {
+            mathMazeUnityInstance.SetFullscreen(1);
+          }
+        }
+      }
+
+      function mathMazePostToParentVisibility(hidden, reason) {
+        if (!mathMazeInParentFrame) return;
+        try {
+          window.parent.postMessage(
+            { type: "MATHMAZE_IFRAME_VISIBILITY", hidden: !!hidden, reason: reason  "" },
+            "*"
+          );
+        } catch (e) {}
+      }
+
+      function mathMazeStartIframeBridge(unityInstance) {
+        if (!mathMazeInParentFrame) return;
+        window.unityInstance = unityInstance;
+        window.unityGame = unityInstance;
+
+        if (mathMazeIframePingId != null) {
+          clearInterval(mathMazeIframePingId);
+          mathMazeIframePingId = null;
+        }
+        mathMazeIframePingId = setInterval(function () {
+          try {
+            window.parent.postMessage({ type: "MATHMAZE_IFRAME_PING", t: Date.now() }, "*");
+          } catch (e) {}
+        }, 250);
+
+        document.addEventListener("visibilitychange", function () {
+          mathMazePostToParentVisibility(document.hidden, document.visibilityState  "visibilitychange");
+        });
+        window.addEventListener("pagehide", function () {
+          mathMazePostToParentVisibility(true, "pagehide");
+        });
+
+        window.addEventListener("message", function (ev) {
+          if (!ev.data  ev.data.type !== "MATHMAZE_FORCE_LEVEL_MENU") return;
+          if (!unityInstance  typeof unityInstance.SendMessage !== "function") return;
+          try {
+            unityInstance.SendMessage("GameManager", "ReturnToLevelMenuFromWebLock", "");
+          } catch (e) {}
+        });
+      }
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
+              })
+          .then((unityInstance) => {
+            mathMazeUnityInstance = unityInstance;
+                document.querySelector("#unity-loading-bar").style.display = "none";
+                document.querySelector("#unity-fullscreen-button").onclick = () => {
+                               mathMazeToggleFullscreen();
+                };
+ mathMazeStartIframeBridge(unityInstance);
+          })
+          .catch((message) => {
+                alert(message);
+              });
+            };
+            document.body.appendChild(script);
+
+    </script>
+  </body>
+</html>
