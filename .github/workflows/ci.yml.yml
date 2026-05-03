@@ -22,4 +22,4 @@ jobs:
         run: echo "Simulating install... OK"
 
       - name: Run Tests
-        run: echo "Simulating tests... OK!"
+        run: exit 1
