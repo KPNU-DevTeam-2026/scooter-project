@@ -1,0 +1,27 @@
+name: CI Code Check
+# Коли запускати?
+on:
+ push:
+ branches: [ "main", "develop" ]
+ pull_request:
+ branches: [ "main", "develop" ]
+# Що робити?
+jobs:
+ build-and-test:
+ runs-on: ubuntu-latest # Виділи нам віртуальний Linux
+ steps:
+ # Крок 1: Забрати код з репозиторію
+ - name: Checkout code
+ uses: actions/checkout@v3
+ # Крок 2: Налаштувати середовище (наприклад, Node.js)
+ - name: Setup Node.js
+ uses: actions/setup-node@v3
+ with:
+ node-version: '18'
+ # Крок 3: Встановити залежності
+ - name: Install dependencies
+ run: npm install # або pip install -r requirements.txt для Python
+ # Крок 4: Запустити тести (або просто вивести повідомлення)
+ - name: Run Tests
+ run: npm test
+ # Якщо у вас немає тестів, замініть на: echo "Simulating tests... OK!"
